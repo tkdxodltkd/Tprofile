@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ko" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>티스토리 캐릭터 프로필 에디터</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&display=swap');
+
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+    
+    .font-serif-kr {
+      font-family: 'Noto Serif KR', serif;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.2);
+      border-radius: 3px;
+    }
+    .dark ::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+    }
+    .dark ::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+    }
+  </style>
+</head>
+<body class="h-full bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100 flex flex-col transition-colors duration-200">
+
+  <!-- Header -->
+  <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 sticky top-0 z-30 shrink-0">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <div class="p-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg">
+          <i data-lucide="user-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">티스토리 캐릭터 프로필 에디터</h1>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Tistory Blog Character Profile Card Generator</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2">
+        <button id="themeToggleBtn" title="화면 테마 변경" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition">
+          <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
+          <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+        </button>
+
+        <button onclick="openSaveModal()" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg transition">
+          <i data-lucide="save" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">저장/불러오기</span>
+        </button>
+
+        <button onclick="exportJSON()" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg transition" title="JSON 파일 내보내기">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">내보내기</span>
+        </button>
+
+        <label class="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg cursor-pointer transition" title="JSON 파일 불러오기">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">가져오기</span>
+          <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importJSON(event)">
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <div class="flex-1 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 md:p-6 overflow-hidden">
+    
+    <!-- LEFT PANEL: Form Controls (Editable) -->
+    <section class="lg:col-span-6 flex flex-col gap-5 overflow-y-auto pr-1">
+      
+      <!-- 1. Style & Theme Settings -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+        <h2 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+          <i data-lucide="palette" class="w-4 h-4"></i> 스타일 설정
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Point Color Picker -->
+          <div>
+            <label class="block text-xs font-medium mb-1.5 text-slate-700 dark:text-slate-300">포인트 색상</label>
+            <div class="flex items-center gap-2">
+              <input type="color" id="accentColor" value="#6366f1" oninput="updateProfile()" class="w-9 h-9 p-0.5 rounded border border-slate-300 dark:border-slate-700 cursor-pointer bg-transparent">
+              <input type="text" id="accentColorText" value="#6366f1" oninput="syncColorInput(this.value)" class="flex-1 text-xs px-2.5 py-2 border border-slate-300 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 uppercase font-mono">
+            </div>
+            <!-- Color Palettes -->
+            <div class="flex gap-1.5 mt-2">
+              <button onclick="setAccentColor('#6366f1')" class="w-5 h-5 rounded-full bg-[#6366f1] ring-1 ring-slate-300 dark:ring-slate-700"></button>
+              <button onclick="setAccentColor('#ec4899')" class="w-5 h-5 rounded-full bg-[#ec4899] ring-1 ring-slate-300 dark:ring-slate-700"></button>
+              <button onclick="setAccentColor('#06b6d4')" class="w-5 h-5 rounded-full bg-[#06b6d4] ring-1 ring-slate-300 dark:ring-slate-700"></button>
+              <button onclick="setAccentColor('#10b981')" class="w-5 h-5 rounded-full bg-[#10b981] ring-1 ring-slate-300 dark:ring-slate-700"></button>
+              <button onclick="setAccentColor('#f59e0b')" class="w-5 h-5 rounded-full bg-[#f59e0b] ring-1 ring-slate-300 dark:ring-slate-700"></button>
+              <button onclick="setAccentColor('#64748b')" class="w-5 h-5 rounded-full bg-[#64748b] ring-1 ring-slate-300 dark:ring-slate-700"></button>
+              <button onclick="setAccentColor('#111827')" class="w-5 h-5 rounded-full bg-[#111827] ring-1 ring-slate-300 dark:ring-slate-700"></button>
+            </div>
+          </div>
+
+          <!-- Font Type Picker -->
+          <div>
+            <label class="block text-xs font-medium mb-1.5 text-slate-700 dark:text-slate-300">서체 스타일</label>
+            <select id="fontFamily" onchange="updateProfile()" class="w-full text-xs px-2.5 py-2 border border-slate-300 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+              <option value="sans-serif">고딕체 (Pretendard / Sans-serif)</option>
+              <option value="serif">명조체 (Noto Serif / Serif)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Basic Profile Info -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm space-y-3">
+        <h2 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+          <i data-lucide="user" class="w-4 h-4"></i> 캐릭터 타이틀 정보
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium mb-1 text-slate-700 dark:text-slate-300">캐릭터 이름</label>
+            <input type="text" id="charName" oninput="updateProfile()" placeholder="이름을 입력하세요" class="w-full text-xs px-3 py-2 border border-slate-300 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1 text-slate-700 dark:text-slate-300">수식어 / 역할</label>
+            <input type="text" id="charSub" oninput="updateProfile()" placeholder="수식어/역할을 입력하세요" class="w-full text-xs px-3 py-2 border border-slate-300 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium mb-1 text-slate-700 dark:text-slate-300">대표 명언 / 대사</label>
+          <input type="text" id="charQuote" oninput="updateProfile()" placeholder="대표 문구나 대사를 입력하세요" class="w-full text-xs px-3 py-2 border border-slate-300 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+        </div>
+      </div>
+
+      <!-- 3. Key Stats / Specs List -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <i data-lucide="list" class="w-4 h-4"></i> 세부 프로필 항목 (나이, MBTI 등)
+          </h2>
+          <button onclick="addStatRow()" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 항목 추가
+          </button>
+        </div>
+        
+        <div id="statsContainer" class="space-y-2">
+          <!-- Stat items injected via JS -->
+        </div>
+      </div>
+
+      <!-- 4. Story & Custom Sections -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <i data-lucide="file-text" class="w-4 h-4"></i> 스토리 & 커스텀 섹션
+          </h2>
+          <button onclick="addSectionRow()" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 섹션 추가
+          </button>
+        </div>
+
+        <div id="sectionsContainer" class="space-y-4">
+          <!-- Dynamic sections injected via JS -->
+        </div>
+      </div>
+
+      <!-- 5. Relationship Cards Section -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <i data-lucide="users" class="w-4 h-4"></i> 관계
+          </h2>
+          <button onclick="addRelRow()" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 관계 추가
+          </button>
+        </div>
+
+        <div id="relationshipsContainer" class="space-y-4">
+          <!-- Dynamic relationship cards injected via JS -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT PANEL: Preview & Code Tabs -->
+    <section class="lg:col-span-6 flex flex-col h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+      
+      <!-- Panel Header Tabs -->
+      <div class="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+        <div class="flex gap-1">
+          <button id="tabPreviewBtn" onclick="switchTab('preview')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-700">
+            실시간 미리보기
+          </button>
+          <button id="tabCodeBtn" onclick="switchTab('code')" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800">
+            티스토리 HTML 코드
+          </button>
+        </div>
+        
+        <!-- Copy HTML Button -->
+        <button onclick="copyHTML()" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition active:scale-95">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          <span>티스토리용 HTML 복사하기</span>
+        </button>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div class="flex-1 relative overflow-y-auto p-4 md:p-6 bg-slate-100/50 dark:bg-slate-950/50">
+        
+        <!-- Tab 1: Live Preview Canvas -->
+        <div id="tabPreview" class="w-full h-full flex items-start justify-center">
+          <div id="previewWrapper" class="w-full max-w-xl transition-all">
+            <!-- Output rendered here -->
+          </div>
+        </div>
+
+        <!-- Tab 2: Code Editor View -->
+        <div id="tabCode" class="hidden w-full h-full">
+          <div class="relative h-full">
+            <textarea id="generatedCode" readonly class="w-full h-full p-4 font-mono text-xs bg-slate-900 text-slate-200 rounded-lg border border-slate-800 focus:outline-none resize-none leading-relaxed"></textarea>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Preview Mode Note Footer -->
+      <div class="px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 flex items-center justify-between">
+        <span class="flex items-center gap-1.5">
+          <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-500"></i>
+          티스토리 글 작성 시 <code class="px-1 py-0.5 bg-slate-200 dark:bg-slate-800 rounded font-bold">HTML 편집</code> 모드에서 붙여넣으세요.
+        </span>
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- Save/Load Profiles Modal -->
+  <div id="saveModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl w-full max-w-md shadow-2xl p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <h3 class="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <i data-lucide="bookmark" class="w-4 h-4 text-indigo-500"></i> 프로필 보관함
+        </h3>
+        <button onclick="closeSaveModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Current Save -->
+      <div class="flex gap-2">
+        <input type="text" id="saveSlotName" placeholder="저장할 캐릭터 이름" class="flex-1 text-xs px-3 py-2 border border-slate-300 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 focus:outline-none">
+        <button onclick="saveCurrentProfile()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded transition">
+          현재 상태 저장
+        </button>
+      </div>
+
+      <!-- Saved Slots List -->
+      <div class="space-y-2 max-h-60 overflow-y-auto border-t border-slate-100 dark:border-slate-800 pt-3">
+        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">저장된 프로필 목록</label>
+        <div id="savedProfilesList" class="space-y-2">
+          <!-- Dynamic Items -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-xs px-4 py-3 rounded-lg shadow-xl flex items-center gap-2 pointer-events-none">
+    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 dark:text-emerald-600"></i>
+    <span id="toastMsg">클립보드에 복사되었습니다!</span>
+  </div>
+
+  <!-- App Script Logic -->
+  <script>
+    // Initial Blank Data Structure
+    let profileData = {
+      accentColor: "#6366f1",
+      fontFamily: "sans-serif",
+      charName: "",
+      charSub: "",
+      charQuote: "",
+      stats: [
+        { label: "", value: "" }
+      ],
+      sections: [
+        { title: "", content: "" }
+      ],
+      relationships: [
+        { targetName: "", relationType: "", narrative: "" }
+      ]
+    };
+
+    // Initialize Page
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      initTheme();
+      loadFromInputs();
+      renderStatsInputs();
+      renderSectionsInputs();
+      renderRelationshipsInputs();
+      updateProfile();
+    });
+
+    // Dark Mode Toggle
+    function initTheme() {
+      const themeToggleBtn = document.getElementById('themeToggleBtn');
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      }
+      themeToggleBtn.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+      });
+    }
+
+    // Set Initial values to Input fields
+    function loadFromInputs() {
+      document.getElementById('accentColor').value = profileData.accentColor;
+      document.getElementById('accentColorText').value = profileData.accentColor;
+      document.getElementById('fontFamily').value = profileData.fontFamily;
+      document.getElementById('charName').value = profileData.charName;
+      document.getElementById('charSub').value = profileData.charSub;
+      document.getElementById('charQuote').value = profileData.charQuote;
+    }
+
+    function setAccentColor(hex) {
+      document.getElementById('accentColor').value = hex;
+      document.getElementById('accentColorText').value = hex;
+      updateProfile();
+    }
+
+    function syncColorInput(hex) {
+      if (/^#[0-9A-F]{6}$/i.test(hex)) {
+        document.getElementById('accentColor').value = hex;
+        updateProfile();
+      }
+    }
+
+    // Render Form Controls
+    function renderStatsInputs() {
+      const container = document.getElementById('statsContainer');
+      container.innerHTML = '';
+      (profileData.stats || []).forEach((stat, index) => {
+        const row = document.createElement('div');
+        row.className = "flex items-center gap-2";
+        row.innerHTML = `
+          <input type="text" value="${escapeHtml(stat.label)}" oninput="updateStat(${index}, 'label', this.value)" placeholder="항목 (예: 나이)" class="w-1/3 text-xs px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 focus:outline-none">
+          <input type="text" value="${escapeHtml(stat.value)}" oninput="updateStat(${index}, 'value', this.value)" placeholder="내용 (예: 20세)" class="flex-1 text-xs px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded bg-slate-50 dark:bg-slate-800 focus:outline-none">
+          <button onclick="removeStatRow(${index})" class="p-1 text-slate-400 hover:text-red-500 rounded transition" title="삭제">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        `;
+        container.appendChild(row);
+      });
+      lucide.createIcons();
+    }
+
+    function renderSectionsInputs() {
+      const container = document.getElementById('sectionsContainer');
+      container.innerHTML = '';
+      (profileData.sections || []).forEach((sec, index) => {
+        const box = document.createElement('div');
+        box.className = "p-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/50 dark:bg-slate-800/30 space-y-2";
+        box.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <input type="text" value="${escapeHtml(sec.title)}" oninput="updateSection(${index}, 'title', this.value)" placeholder="섹션 제목" class="flex-1 text-xs font-bold px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-800 focus:outline-none">
+            <button onclick="removeSectionRow(${index})" class="p-1 text-slate-400 hover:text-red-500 rounded transition" title="삭제">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <textarea oninput="updateSection(${index}, 'content', this.value)" rows="3" placeholder="섹션 본문 내용..." class="w-full text-xs p-2.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-800 focus:outline-none resize-y leading-relaxed">${escapeHtml(sec.content)}</textarea>
+        `;
+        container.appendChild(box);
+      });
+      lucide.createIcons();
+    }
+
+    function renderRelationshipsInputs() {
+      const container = document.getElementById('relationshipsContainer');
+      container.innerHTML = '';
+      (profileData.relationships || []).forEach((rel, index) => {
+        const box = document.createElement('div');
+        box.className = "p-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/50 dark:bg-slate-800/30 space-y-2";
+        box.innerHTML = `
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" value="${escapeHtml(rel.targetName)}" oninput="updateRel(${index}, 'targetName', this.value)" placeholder="상대 캐릭터 이름" class="text-xs px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-800 focus:outline-none">
+            <div class="flex items-center gap-2">
+              <input type="text" value="${escapeHtml(rel.relationType)}" oninput="updateRel(${index}, 'relationType', this.value)" placeholder="관계 태그 (예: 라이벌)" class="flex-1 text-xs px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-800 focus:outline-none">
+              <button onclick="removeRelRow(${index})" class="p-1 text-slate-400 hover:text-red-500 rounded transition" title="삭제">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <textarea oninput="updateRel(${index}, 'narrative', this.value)" rows="2" placeholder="간단한 관계 서사 / 설명..." class="w-full text-xs p-2.5 border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-800 focus:outline-none resize-y leading-relaxed">${escapeHtml(rel.narrative)}</textarea>
+        `;
+        container.appendChild(box);
+      });
+      lucide.createIcons();
+    }
+
+    // Dynamic Data Mutators
+    function addStatRow() {
+      if (!profileData.stats) profileData.stats = [];
+      profileData.stats.push({ label: "", value: "" });
+      renderStatsInputs();
+      updateProfile();
+    }
+
+    function removeStatRow(index) {
+      profileData.stats.splice(index, 1);
+      renderStatsInputs();
+      updateProfile();
+    }
+
+    function updateStat(index, field, val) {
+      profileData.stats[index][field] = val;
+      updateProfile();
+    }
+
+    function addSectionRow() {
+      if (!profileData.sections) profileData.sections = [];
+      profileData.sections.push({ title: "", content: "" });
+      renderSectionsInputs();
+      updateProfile();
+    }
+
+    function removeSectionRow(index) {
+      profileData.sections.splice(index, 1);
+      renderSectionsInputs();
+      updateProfile();
+    }
+
+    function updateSection(index, field, val) {
+      profileData.sections[index][field] = val;
+      updateProfile();
+    }
+
+    function addRelRow() {
+      if (!profileData.relationships) profileData.relationships = [];
+      profileData.relationships.push({ targetName: "", relationType: "", narrative: "" });
+      renderRelationshipsInputs();
+      updateProfile();
+    }
+
+    function removeRelRow(index) {
+      profileData.relationships.splice(index, 1);
+      renderRelationshipsInputs();
+      updateProfile();
+    }
+
+    function updateRel(index, field, val) {
+      profileData.relationships[index][field] = val;
+      updateProfile();
+    }
+
+    // Main HTML Generator Engine
+    function updateProfile() {
+      // Sync state from inputs
+      profileData.accentColor = document.getElementById('accentColor').value;
+      profileData.fontFamily = document.getElementById('fontFamily').value;
+      profileData.charName = document.getElementById('charName').value;
+      profileData.charSub = document.getElementById('charSub').value;
+      profileData.charQuote = document.getElementById('charQuote').value;
+
+      const generatedHTML = buildCleanTistoryHTML(profileData);
+      
+      // Update Live Preview & Code Box
+      document.getElementById('previewWrapper').innerHTML = generatedHTML;
+      document.getElementById('generatedCode').value = generatedHTML;
+    }
+
+    // Pure HTML Output Builder (NO OUTER CONTAINER BORDER/BOX)
+    function buildCleanTistoryHTML(data) {
+      const accent = data.accentColor;
+      const fontStack = data.fontFamily === 'serif' 
+        ? "'Noto Serif KR', 'Batang', serif" 
+        : "'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      
+      const mainTextColor = "inherit";
+      const subTextColor = "rgba(100, 116, 139, 0.9)";
+      const cardInnerBg = "rgba(0, 0, 0, 0.025)";
+
+      // Header HTML
+      const subHtml = data.charSub ? `<span style="font-size: 13px; font-weight: 600; color: ${accent}; margin-left: 8px;">${escapeHtml(data.charSub)}</span>` : '';
+      const nameHtml = (data.charName || data.charSub) ? `<h3 style="margin: 0; font-size: 22px; font-weight: 700; color: ${mainTextColor}; line-height: 1.2; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px;"><span>${escapeHtml(data.charName)}</span>${subHtml}</h3>` : '';
+
+      // Quote / Dialogue HTML (No quotation marks "")
+      const quoteHtml = data.charQuote ? `
+        <div style="margin-top: 12px; padding: 10px 14px; border-left: 3px solid ${accent}; background: ${cardInnerBg}; font-style: italic; font-size: 13px; color: ${subTextColor}; line-height: 1.5; border-radius: 0 6px 6px 0;">
+          ${escapeHtml(data.charQuote)}
+        </div>
+      ` : '';
+
+      // Stats HTML
+      let statsHtml = '';
+      const validStats = (data.stats || []).filter(s => s.label.trim() !== '' || s.value.trim() !== '');
+      if (validStats.length > 0) {
+        const rows = validStats.map(s => `
+          <div style="display: flex; border-bottom: 1px dashed rgba(150,150,150,0.25); padding: 7px 0; font-size: 13.5px; line-height: 1.5;">
+            <span style="width: 110px; font-weight: 600; color: ${accent}; flex-shrink: 0;">${escapeHtml(s.label)}</span>
+            <span style="color: ${mainTextColor}; flex-1; word-break: break-word;">${escapeHtml(s.value)}</span>
+          </div>
+        `).join('');
+
+        statsHtml = `
+          <div style="margin-top: 18px; padding: 12px 16px; background: ${cardInnerBg}; border-radius: 8px;">
+            ${rows}
+          </div>
+        `;
+      }
+
+      // Sections HTML
+      let sectionsHtml = '';
+      const validSections = (data.sections || []).filter(sec => sec.title.trim() !== '' || sec.content.trim() !== '');
+      if (validSections.length > 0) {
+        sectionsHtml = validSections.map(sec => `
+          <div style="margin-top: 22px;">
+            ${sec.title ? `<h4 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 700; color: ${mainTextColor}; display: flex; align-items: center;">
+              <span style="display: inline-block; width: 4px; height: 14px; background-color: ${accent}; border-radius: 2px; margin-right: 8px;"></span>
+              ${escapeHtml(sec.title)}
+            </h4>` : ''}
+            ${sec.content ? `<div style="font-size: 13.5px; line-height: 1.7; color: ${subTextColor}; white-space: pre-line; word-break: break-word; padding-left: 12px;">${escapeHtml(sec.content)}</div>` : ''}
+          </div>
+        `).join('');
+      }
+
+      // Relationship Cards HTML (Solid Tag Style)
+      let relHtml = '';
+      const validRels = (data.relationships || []).filter(r => r.targetName.trim() !== '' || r.relationType.trim() !== '' || r.narrative.trim() !== '');
+      if (validRels.length > 0) {
+        const relCards = validRels.map(r => `
+          <div style="padding: 12px 14px; background: ${cardInnerBg}; border-radius: 8px; border-top: 2px solid ${accent};">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 4px;">
+              <span style="font-size: 14px; font-weight: 700; color: ${mainTextColor};">${escapeHtml(r.targetName)}</span>
+              ${r.relationType ? `<span style="font-size: 11px; font-weight: 700; background-color: ${accent}; color: #ffffff; padding: 2px 8px; border-radius: 4px;">${escapeHtml(r.relationType)}</span>` : ''}
+            </div>
+            ${r.narrative ? `<div style="font-size: 13px; line-height: 1.6; color: ${subTextColor}; white-space: pre-line; word-break: break-word;">${escapeHtml(r.narrative)}</div>` : ''}
+          </div>
+        `).join('');
+
+        relHtml = `
+          <div style="margin-top: 26px;">
+            <h4 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 700; color: ${mainTextColor}; display: flex; align-items: center;">
+              <span style="display: inline-block; width: 4px; height: 14px; background-color: ${accent}; border-radius: 2px; margin-right: 8px;"></span>
+              관계
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px;">
+              ${relCards}
+            </div>
+          </div>
+        `;
+      }
+
+      // Empty fallback message for live preview
+      if (!data.charName && !data.charSub && !data.charQuote && validStats.length === 0 && validSections.length === 0 && validRels.length === 0) {
+        return `<div style="font-family: ${fontStack}; font-size: 13px; color: #94a3b8; text-align: center; padding: 40px 0;">
+          좌측 입력 폼에 내용을 입력하면 프로필 카드가 실시간 생성됩니다.
+        </div>`;
+      }
+
+      // Assembled Template with NO OUTER CONTAINER BORDER OR BOX SHADOW
+      return `<div class="tistory-character-profile" style="max-width: 640px; margin: 24px auto; padding: 0; font-family: ${fontStack}; box-sizing: border-box; text-align: left; background-color: transparent;">
+  <!-- Header Title Block -->
+  <div>
+    ${nameHtml}
+    ${quoteHtml}
+  </div>
+
+  <!-- Specs / Stats List -->
+  ${statsHtml}
+
+  <!-- Story & Custom Sections -->
+  ${sectionsHtml}
+
+  <!-- Relationship Cards -->
+  ${relHtml}
+</div>`.trim();
+    }
+
+    // Helper: Escape HTML string
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // UI Tab Switcher
+    function switchTab(tab) {
+      const pTab = document.getElementById('tabPreview');
+      const cTab = document.getElementById('tabCode');
+      const pBtn = document.getElementById('tabPreviewBtn');
+      const cBtn = document.getElementById('tabCodeBtn');
+
+      if (tab === 'preview') {
+        pTab.classList.remove('hidden');
+        cTab.classList.add('hidden');
+        pBtn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-700";
+        cBtn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800";
+      } else {
+        pTab.classList.add('hidden');
+        cTab.classList.remove('hidden');
+        cBtn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200 dark:border-slate-700";
+        pBtn.className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800";
+      }
+    }
+
+    // Copy HTML Code Action
+    function copyHTML() {
+      const codeText = document.getElementById('generatedCode').value;
+      
+      const textarea = document.createElement('textarea');
+      textarea.value = codeText;
+      document.body.appendChild(textarea);
+      textarea.select();
+      
+      try {
+        document.execCommand('copy');
+        showToast("티스토리용 HTML 코드가 복사되었습니다!");
+      } catch (err) {
+        showToast("복사에 실패했습니다. 코드 탭에서 직접 선택해 복사해 주세요.");
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    }
+
+    // Show Toast
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.innerText = msg;
+      
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    // Storage Management (Save / Load / Export / Import)
+    function openSaveModal() {
+      document.getElementById('saveModal').classList.remove('hidden');
+      renderSavedProfilesList();
+    }
+
+    function closeSaveModal() {
+      document.getElementById('saveModal').classList.add('hidden');
+    }
+
+    function getSavedProfiles() {
+      return JSON.parse(localStorage.getItem('tistory_char_profiles') || '{}');
+    }
+
+    function saveCurrentProfile() {
+      const nameInput = document.getElementById('saveSlotName');
+      const name = nameInput.value.trim() || profileData.charName || "무제 프로필";
+      
+      const profiles = getSavedProfiles();
+      profiles[name] = {
+        updatedAt: new Date().toLocaleDateString(),
+        data: profileData
+      };
+      
+      localStorage.setItem('tistory_char_profiles', JSON.stringify(profiles));
+      nameInput.value = '';
+      showToast(`'${name}' 프로필이 저장되었습니다.`);
+      renderSavedProfilesList();
+    }
+
+    function loadProfileSlot(name) {
+      const profiles = getSavedProfiles();
+      if (profiles[name]) {
+        profileData = JSON.parse(JSON.stringify(profiles[name].data));
+        loadFromInputs();
+        renderStatsInputs();
+        renderSectionsInputs();
+        renderRelationshipsInputs();
+        updateProfile();
+        closeSaveModal();
+        showToast(`'${name}' 프로필을 불러왔습니다.`);
+      }
+    }
+
+    function deleteProfileSlot(name) {
+      const profiles = getSavedProfiles();
+      delete profiles[name];
+      localStorage.setItem('tistory_char_profiles', JSON.stringify(profiles));
+      renderSavedProfilesList();
+      showToast(`'${name}' 프로필이 삭제되었습니다.`);
+    }
+
+    function renderSavedProfilesList() {
+      const container = document.getElementById('savedProfilesList');
+      const profiles = getSavedProfiles();
+      const keys = Object.keys(profiles);
+
+      if (keys.length === 0) {
+        container.innerHTML = '<div class="text-xs text-slate-400 py-3 text-center">저장된 프로필이 없습니다.</div>';
+        return;
+      }
+
+      container.innerHTML = keys.map(key => `
+        <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div>
+            <div class="text-xs font-bold text-slate-800 dark:text-slate-200">${escapeHtml(key)}</div>
+            <div class="text-[10px] text-slate-400">${profiles[key].updatedAt}</div>
+          </div>
+          <div class="flex items-center gap-1">
+            <button onclick="loadProfileSlot('${escapeHtml(key)}')" class="px-2 py-1 text-xs bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 rounded">
+              불러오기
+            </button>
+            <button onclick="deleteProfileSlot('${escapeHtml(key)}')" class="p-1 text-slate-400 hover:text-red-500 rounded">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // JSON Export / Import
+    function exportJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(profileData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      const fileName = `${(profileData.charName || 'character').replace(/\s+/g, '_')}_profile.json`;
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", fileName);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("JSON 파일로 내보냈습니다.");
+    }
+
+    function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported && typeof imported === 'object') {
+            profileData = imported;
+            loadFromInputs();
+            renderStatsInputs();
+            renderSectionsInputs();
+            renderRelationshipsInputs();
+            updateProfile();
+            showToast("JSON 프로필 데이터 불러오기 완료!");
+          }
+        } catch (err) {
+          showToast("올바르지 않은 JSON 파일입니다.");
+        }
+      };
+      reader.readAsText(file);
+    }
+  </script>
+</body>
+</html>
